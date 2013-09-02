@@ -234,6 +234,7 @@ def LoadRecoveryFSTab(zip, fstab_version):
       p = Partition()
       p.device = pieces[0]
       p.mount_point = pieces[1]
+      p.mount_point = re.sub('raw-', '', p.mount_point)
       p.fs_type = pieces[2]
       p.device2 = None
       p.length = 0

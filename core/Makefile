@@ -89,6 +89,7 @@ $(INSTALLED_DEFAULT_PROP_TARGET):
 # -----------------------------------------------------------------
 # build.prop
 INSTALLED_BUILD_PROP_TARGET := $(TARGET_OUT)/build.prop
+.PHONY: $(INSTALLED_BUILD_PROP_TARGET)
 ALL_DEFAULT_INSTALLED_MODULES += $(INSTALLED_BUILD_PROP_TARGET)
 ADDITIONAL_BUILD_PROPERTIES := \
     $(call collapse-pairs, $(ADDITIONAL_BUILD_PROPERTIES))

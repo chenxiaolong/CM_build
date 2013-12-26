@@ -176,7 +176,7 @@ class EdifyGenerator(object):
 
   def BackupSecondaryKernel(self):
     self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-    self.script.append('ui_print("");')
+    self.script.append('run_program("/tmp/dualboot.sh", "set-primary-kernel");')
     self.script.append("), (")
     self.script.append('run_program("/tmp/dualboot.sh", "set-secondary-kernel");')
     self.script.append("));")
@@ -247,14 +247,18 @@ class EdifyGenerator(object):
 
   def FormatPartitionSystemDualBoot(self):
     """Format /system if not dual booting"""
-    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-    self.FormatPartition("/system")
-    self.script.append("), (")
-    self.script.append('ui_print("Formatting /system/dual for dual boot");')
     self.Mount("/system")
+    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
+
+    self.script.append('run_program("/sbin/busybox", "sh", "-c", "find /system -maxdepth 1 -mindepth 1 ! -name dual-kernels ! -name dual ! -name multi-slot-* | xargs rm -rf");')
+
+    self.script.append("), (")
+
+    self.script.append('ui_print("Formatting /system/dual for dual boot");')
     self.script.append('delete_recursive("/system/dual");')
-    self.Unmount("/system")
+
     self.script.append("));")
+    self.Unmount("/system")
 
   def DeleteFiles(self, file_list):
     """Delete all files in file_list."""

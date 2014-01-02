@@ -118,6 +118,25 @@ class EdifyGenerator(object):
         self.script.append('delete("/system/bin/backuptool.sh");')
         self.script.append('delete("/system/bin/backuptool.functions");')
 
+  def DualPermissions(self, command):
+    self.script.append('package_extract_file("system/bin/backuppermtool.sh", "/tmp/backuppermtool.sh");')
+    self.script.append('package_extract_file("system/bin/getfattr", "/tmp/getfattr");')
+    self.script.append('package_extract_file("system/bin/setfattr", "/tmp/setfattr");')
+    self.script.append('package_extract_file("system/bin/getfacl", "/tmp/getfacl");')
+    self.script.append('package_extract_file("system/bin/setfacl", "/tmp/setfacl");')
+    self.script.append('set_perm(0, 0, 0777, "/tmp/backuppermtool.sh");')
+    self.script.append('set_perm(0, 0, 0777, "/tmp/getfattr");')
+    self.script.append('set_perm(0, 0, 0777, "/tmp/setfattr");')
+    self.script.append('set_perm(0, 0, 0777, "/tmp/getfacl");')
+    self.script.append('set_perm(0, 0, 0777, "/tmp/setfacl");')
+    self.script.append(('run_program("/tmp/backuppermtool.sh", "%s");' % command))
+    if command == "restore":
+        self.script.append('delete("/system/bin/backuppermtool.sh");')
+        self.script.append('delete("/system/bin/getfattr");')
+        self.script.append('delete("/system/bin/setfattr");')
+        self.script.append('delete("/system/bin/getfacl");')
+        self.script.append('delete("/system/bin/setfacl");')
+
   def ShowProgress(self, frac, dur):
     """Update the progress bar, advancing it over 'frac' over the next
     'dur' seconds.  'dur' may be zero to advance it via SetProgress

@@ -463,6 +463,9 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   script.FormatPartitionSystemDualBoot()
   script.MountSystemDualBoot()
+
+  script.DualPermissions("backup")
+
   #script.UnpackPackageDir("recovery", "/system")
   script.UnpackPackageDir("system", "/system")
 
@@ -485,6 +488,8 @@ def WriteFullOTAPackage(input_zip, output_zip):
   if OPTIONS.backuptool:
     script.ShowProgress(0.2, 10)
     script.RunBackup("restore")
+
+  script.DualPermissions("restore")
 
   script.ShowProgress(0.2, 10)
   script.WriteRawImage("/boot", "boot.img")

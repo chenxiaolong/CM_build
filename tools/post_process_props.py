@@ -19,6 +19,8 @@ import os, sys
 # Put the modifications that you need to make into the /system/build.prop into this
 # function. The prop object has get(name) and put(name,value) methods.
 def mangle_build_prop(prop, overrides):
+  if len(overrides) == 0:
+    return
   overridelist = overrides.replace(" ",",").split(",")
   for proppair in overridelist:
     values = proppair.split("=")

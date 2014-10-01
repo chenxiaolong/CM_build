@@ -130,25 +130,6 @@ class EdifyGenerator(object):
         self.script.append('delete("/system/bin/backuptool.sh");')
         self.script.append('delete("/system/bin/backuptool.functions");')
 
-  def DualPermissions(self, command):
-    self.script.append('package_extract_file("system/bin/backuppermtool.sh", "/tmp/backuppermtool.sh");')
-    self.script.append('package_extract_file("system/bin/getfattr", "/tmp/getfattr");')
-    self.script.append('package_extract_file("system/bin/setfattr", "/tmp/setfattr");')
-    self.script.append('package_extract_file("system/bin/getfacl", "/tmp/getfacl");')
-    self.script.append('package_extract_file("system/bin/setfacl", "/tmp/setfacl");')
-    self.script.append('set_perm(0, 0, 0777, "/tmp/backuppermtool.sh");')
-    self.script.append('set_perm(0, 0, 0777, "/tmp/getfattr");')
-    self.script.append('set_perm(0, 0, 0777, "/tmp/setfattr");')
-    self.script.append('set_perm(0, 0, 0777, "/tmp/getfacl");')
-    self.script.append('set_perm(0, 0, 0777, "/tmp/setfacl");')
-    self.script.append(('run_program("/tmp/backuppermtool.sh", "%s");' % command))
-    if command == "restore":
-        self.script.append('delete("/system/bin/backuppermtool.sh");')
-        self.script.append('delete("/system/bin/getfattr");')
-        self.script.append('delete("/system/bin/setfattr");')
-        self.script.append('delete("/system/bin/getfacl");')
-        self.script.append('delete("/system/bin/setfacl");')
-
   def ValidateSignatures(self, command):
     if command == "cleanup":
         self.script.append('delete("/system/bin/otasigcheck.sh");')
@@ -194,35 +175,6 @@ class EdifyGenerator(object):
     self.script.append(('apply_patch_space(%d) || abort("Not enough free space '
                         'on /system to apply patches.");') % (amount,))
 
-  def WriteDualBootProp(self):
-    """Write prop file to detect if dual boot will be used"""
-    self.script.append('package_extract_file("system/bin/dualboot.sh", "/tmp/dualboot.sh");')
-    self.script.append('set_perm(0, 0, 0777, "/tmp/dualboot.sh");')
-    self.script.append('run_program("/tmp/dualboot.sh", "is-dualboot");')
-
-  def WriteDualBootInfo(self):
-    """Write ro.build.version.incremental to file"""
-    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (');
-    self.script.append('ui_print("");')
-    self.script.append("), (");
-    self.script.append('run_program("/tmp/dualboot.sh", "set-secondary");')
-    self.script.append("));")
-
-  def PrintDualBoot(self):
-    """Print dual booting status"""
-    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-    self.script.append('ui_print("Dual boot installation is disabled");')
-    self.script.append("), (")
-    self.script.append('ui_print("Dual boot installation is enabled");')
-    self.script.append("));")
-
-  def BackupSecondaryKernel(self):
-    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-    self.script.append('run_program("/tmp/dualboot.sh", "set-primary-kernel");')
-    self.script.append("), (")
-    self.script.append('run_program("/tmp/dualboot.sh", "set-secondary-kernel");')
-    self.script.append("));")
-
   def Mount(self, mount_point):
     """Mount the partition with the given mount_point."""
     fstab = self.info.get("fstab", None)
@@ -233,31 +185,11 @@ class EdifyGenerator(object):
                           p.device, p.mount_point))
       self.mounts.add(p.mount_point)
 
-  def MountSystemDualBoot(self):
-    """Mount the /system partition for dual booting"""
-    fstab = self.info.get("fstab", None)
-    if fstab:
-      p = fstab['/system']
-      self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-      self.Mount("/system")
-      self.script.append("), (")
-      self.script.append('run_program("/tmp/dualboot.sh", "mount-system", "%s", "%s");' %
-                         (p.fs_type, p.device))
-      self.script.append("));")
-
   def Unmount(self, mount_point):
     """Unmount the partiiton with the given mount_point."""
     if mount_point in self.mounts:
       self.mounts.remove(mount_point)
       self.script.append('unmount("%s");' % (mount_point,))
-
-  def UnmountSystemDualBoot(self):
-    """Unmount /system"""
-    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-    self.Unmount("/system")
-    self.script.append("), (")
-    self.script.append('run_program("/tmp/dualboot.sh", "unmount-system");')
-    self.script.append("));")
 
   def UnpackPackageDir(self, src, dst):
     """Unpack a given directory from the OTA package into the given
@@ -286,21 +218,6 @@ class EdifyGenerator(object):
       self.script.append('format("%s", "%s", "%s", "%s", "%s");' %
                          (p.fs_type, common.PARTITION_TYPES[p.fs_type],
                           p.device, p.length, p.mount_point))
-
-  def FormatPartitionSystemDualBoot(self):
-    """Format /system if not dual booting"""
-    self.Mount("/system")
-    self.script.append('ifelse(file_getprop("/tmp/dualboot.prop", ro.dualboot) == "0", (')
-
-    self.script.append('run_program("/sbin/busybox", "sh", "-c", "find /system -maxdepth 1 -mindepth 1 ! -name dual-kernels ! -name dual ! -name multi-slot-* | xargs rm -rf");')
-
-    self.script.append("), (")
-
-    self.script.append('ui_print("Formatting /system/dual for dual boot");')
-    self.script.append('delete_recursive("/system/dual");')
-
-    self.script.append("));")
-    self.Unmount("/system")
 
   def DeleteFiles(self, file_list):
     """Delete all files in file_list."""

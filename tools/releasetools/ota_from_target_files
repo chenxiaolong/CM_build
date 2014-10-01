@@ -512,9 +512,9 @@ else if get_stage("%(bcb_dev)s", "stage") == "3/3" then
   device_specific.FullOTA_InstallBegin()
 
   if OPTIONS.backuptool:
-    script.MountSystemDualBoot()
+    script.Mount("/system")
     script.RunBackup("backup")
-    script.UnmountSystemDualBoot()
+    script.Unmount("/system")
 
   script.ShowProgress(0.5, 0)
 
@@ -528,11 +528,8 @@ else if get_stage("%(bcb_dev)s", "stage") == "3/3" then
   if "selinux_fc" in OPTIONS.info_dict:
     WritePolicyConfig(OPTIONS.info_dict["selinux_fc"], output_zip)
 
-  script.FormatPartitionSystemDualBoot()
-  script.MountSystemDualBoot()
-
-  script.DualPermissions("backup")
-
+  script.FormatPartition("/system")
+  script.Mount("/system")
   if not OPTIONS.no_separate_recovery:
     script.UnpackPackageDir("recovery", "/system")
   script.UnpackPackageDir("system", "/system")
@@ -558,20 +555,15 @@ else if get_stage("%(bcb_dev)s", "stage") == "3/3" then
     script.ShowProgress(0.2, 10)
     script.RunBackup("restore")
 
-  script.DualPermissions("restore")
-
   script.ShowProgress(0.2, 10)
   script.WriteRawImage("/boot", "boot.img")
 
   script.ShowProgress(0.1, 0)
   device_specific.FullOTA_InstallEnd()
-  script.BackupSecondaryKernel()
 
   if OPTIONS.extra_script is not None:
     script.AppendExtra(OPTIONS.extra_script)
 
-  script.WriteDualBootInfo()
-  script.UnmountSystemDualBoot()
   script.UnmountAll()
 
   if OPTIONS.two_step:
